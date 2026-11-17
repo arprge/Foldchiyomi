@@ -255,24 +255,36 @@ object TransitionCurl : Transition() {
         if (sheet.y2 - grab < CORNER_SNAP * height) grab = sheet.y2
         val gy = grab * aspect
 
+        val drag = abs(frac).coerceIn(0f, 1f)
         val fingerDy = (pos2.y - pos1.y) / dst.height * aspect
-        val dy = when {
+        var dy = when {
             gesture.auto -> -AUTO_LIFT * (sy2 - sy1) * sin(PI * t).toFloat()
-            // Eased in, so the curl never starts already lifted.
-            gesture.held -> fingerDy * smoothstep(t / 0.06f)
+            // Eased in from the start of the drag, so the curl never starts already lifted.
+            gesture.held -> fingerDy * smoothstep(drag / 0.06f)
             else -> {
                 val release = gesture.releaseFrac
                 if (release == 0f || sign(release) != sign(frac)) {
                     0f
                 } else {
+                    val rDrag = abs(release).coerceIn(0f, 1f)
                     val tRelease = turnProgress(release, aIsPage1)
+                    val settleEnd = min(0.04f, 0.5f * tRelease)
                     val envelope = when {
-                        t <= tRelease -> if (tRelease > 1e-4f) t / tRelease else 0f
+                        t <= tRelease -> if (tRelease > 1e-4f) {
+                            smoothstep((t - settleEnd) / (tRelease - settleEnd))
+                        } else 0f
                         else -> if (tRelease < 1f - 1e-4f) (1f - t) / (1f - tRelease) else 0f
                     }
-                    fingerDy * smoothstep(tRelease / 0.06f) * envelope
+                    fingerDy * smoothstep(rDrag / 0.06f) * envelope
                 }
             }
+        }
+        if (!gesture.auto) {
+            // Keep the fold line from stranding an outer corner past sx2 as dx -> 0.
+            val dxEdge = sx2 - px
+            val span = if (dy < 0f) sy2 - gy else gy - sy1
+            val maxDy = if (span > 1e-4f) min(dxEdge, dxEdge * dxEdge / (2.2f * span)) else dxEdge
+            dy = dy.coerceIn(-maxDy, maxDy)
         }
 
         val p0x = sx2
