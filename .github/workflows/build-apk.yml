@@ -36,7 +36,7 @@ jobs:
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleFoss --stacktrace
+          ./gradlew assembleFoss -Pabi=arm64-v8a --stacktrace
         env:
           MIHON_GITHUB_RELEASE: ${{ steps.signing.outputs.enabled }}
           storeFile: ${{ runner.temp }}/foldchiyomi.jks

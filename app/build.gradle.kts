@@ -123,12 +123,17 @@ android {
         getByName("benchmark").res.directories.add("src/debug/res")
     }
 
+    val targetAbi = providers.gradleProperty("abi").orNull
     splits {
         abi {
             isEnable = true
-            isUniversalApk = true
+            isUniversalApk = targetAbi == null
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            if (targetAbi != null) {
+                include(targetAbi)
+            } else {
+                include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            }
         }
     }
 
